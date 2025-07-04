@@ -13,8 +13,8 @@ pub struct SaveMetadata<'a> {
     level: u32,
     is_darkworld: bool,
     story_flag: u32,
-    room_id: u32,
-    time_played: Duration,
+    pub room_id: u32,
+    pub time_played: Duration,
     item_ids: Option<[u32; 13]>,
     key_item_ids: Option<[u32; 13]>,
 }
