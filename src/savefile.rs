@@ -1,9 +1,12 @@
 use std::time::Duration;
 use compact_str::{format_compact, CompactString};
 use indoc::indoc;
+use log::warn;
 use crate::gamedata::items::display_item;
 use crate::gamedata::key_items::display_key_item;
 use crate::gamedata::rooms::display_room;
+use crate::iter::{ResultArrayExt, ResultVecExt};
+use crate::SaveParser::{ParseError, SaveParser};
 
 pub struct SaveMetadata<'a> {
     chapter: u32,
@@ -20,35 +23,120 @@ pub struct SaveMetadata<'a> {
 }
 
 impl SaveMetadata<'_> {
-    pub fn read<'a>(chapter: u32, save_lines: &'a [&'a str]) -> SaveMetadata<'a> {
+    pub fn read<'a>(chapter: u32, save_lines: &'a [&'a str]) -> Result<SaveMetadata<'a>,
+        ParseError> {
         let len = save_lines.len();
-        let (items_offset, item_mult) = match chapter {
-            1 => (Some(236 - 1), 4),
-            2 => (Some(330 - 1), 2),
-            _ => (None, 0),
-        };
-        let (items, key_items) = if let Some(offset) = items_offset {
-            let mut item_ids = [0; 13];
-            let mut key_item_ids = [0; 13];
-            for i in 0..13 {
-                item_ids[i] = save_lines[offset + item_mult * i].trim().parse().unwrap();
-                key_item_ids[i] = save_lines[offset + item_mult * i + 1].trim().parse().unwrap();
-            }
-            (Some(item_ids), Some(key_item_ids))
-        } else { (None, None) };
-        SaveMetadata {
-            chapter,
-            player_name: save_lines[0],
-            vessel_name: save_lines[1],
-            dark_dollars: save_lines[10].trim().parse().unwrap(),
-            level: save_lines[12].trim().parse().unwrap(),
-            is_darkworld: save_lines[16].trim() == "1",
-            story_flag: save_lines[len - 3].trim().parse().unwrap(),
-            room_id: save_lines[len - 2].trim().parse().unwrap(),
-            time_played: Duration::from_secs_f64(save_lines[len - 1].trim().parse::<f64>().unwrap() / 30.0),
-            item_ids: items,
-            key_item_ids: key_items,
+
+        if chapter < 1 {
+            panic!("Invalid chapter number");
         }
+
+        if chapter > 4 {
+            warn!(
+                "Chapter {} is not supported. Will assume it's the same as chapters 2–4,\
+                    but might break.",
+                chapter
+            );
+        }
+        
+        let is_chapter_1 = chapter == 1;
+
+        let mut parser = SaveParser::new(chapter, save_lines);
+
+        let truename = parser.parse_string();
+
+        let vesselname = parser.parse_string()?;
+
+        for _ in 1..6 {
+            _ = parser.parse_string()?; // Other 5 vessel names?
+        }
+
+        let party = [(); 3].map(|_| parser.parse_int()).flatten_ok()?;
+
+        let dark_dollars = parser.parse_int()?;
+
+        let xp = parser.parse_int()?;
+
+        let level = parser.parse_int()?;
+
+        // Something with invincibility frames
+        let _inv = parser.parse_int()?;
+        let _invc = parser.parse_int()?;
+
+        let darkzone = parser.parse_bool()?;
+
+        let stat_blocks = match chapter {
+            1 => 4,
+            _ => 5,
+        };
+
+        let stats = (0..stat_blocks).map(|i| parser.parse_stats())
+            .collect::<Vec<_>>()
+            .flatten_ok()?;
+
+        let bolt_speed = parser.parse_int()?; // ?
+        let graze_amount = parser.parse_int()?;
+        let graze_size = parser.parse_int()?;
+        
+        let mut inventory = [0; 13];
+        let mut key_items = [0; 13];
+        
+        let mut weapons = Vec::with_capacity(if is_chapter_1 { 13 } else { 48 });
+        let mut armors = weapons.clone();
+        
+        let mut pocket = if is_chapter_1 { None } else { Some(Vec::with_capacity(72)) };
+        
+        for i in 0..13 {
+            inventory[i] = parser.parse_uint()?;
+            key_items[i] = parser.parse_uint()?;
+            
+            if is_chapter_1 {
+                weapons.push(parser.parse_uint()?);
+                armors.push(parser.parse_uint()?);
+            }
+        }
+        
+        if !is_chapter_1 {
+            for _ in 0..48 {
+                weapons.push(parser.parse_uint()?);
+                armors.push(parser.parse_uint()?);
+            }
+            
+            for _ in 0..72 {
+                pocket.as_mut().unwrap().push(parser.parse_uint()?);
+            }
+        }
+        
+        let tension = parser.parse_int()?;
+        let max_tension = parser.parse_int()?;
+        
+        let lightworld_stats = parser.parse_lightworld_stats()?;
+        
+        let mut lightworld_items = [0; 8];
+        let mut lightworld_phone = [0; 8];
+        
+        for i in 0..8 {
+            lightworld_items[i] = parser.parse_uint()?;
+            lightworld_phone[i] = parser.parse_uint()?;
+        }
+        
+        let flags = [(); 2500].map(|_| parser.parse_int()).flatten_ok()?; // Int?
+        
+        if is_chapter_1 {
+            // Chapter 1 stores 9999 flags, we need to skip the rest of them
+            // They should all be zero
+            for _ in 2500..9999 {
+                _ = parser.parse_int()?;
+            }
+        }
+        
+        let plot_value = parser.parse_int()?;
+        let current_room = parser.parse_uint()?;
+        let played_time = parser.parse_uint()?;
+        
+        parser.expect_eof()?;
+        
+        todo!();
     }
 
     pub fn display_room(&self) -> CompactString {
@@ -100,3 +188,49 @@ impl SaveMetadata<'_> {
     }
 }
 
+pub struct ItemStats {
+    pub attack: i32,
+    pub defense: i32,
+    pub magic: i32,
+    pub bolts: i32, // What?
+    pub graze_amount: i32,
+    pub graze_size: i32,
+    pub bolts_speed: i32, // ?
+    pub item_special: i32, // int?
+
+    // Chapter 2 and up
+    // For chapter 1, both set to 0
+    pub item_element: u32,
+    pub item_element_amount: i32,
+}
+
+pub struct Stats {
+    pub hp: i32,
+    pub max_hp: i32,
+    pub attack: i32,
+    pub defense: i32,
+    pub magic: i32,
+    pub guts: i32,
+
+    pub weapon: u32,
+    pub armor1: u32,
+    pub armor2: u32,
+    pub weapon_style: u32,
+    
+    pub item_stats: [ItemStats; 4],
+    pub spells: [u32; 12],
+}
+
+pub struct LightworldStats {
+    pub weapon: u32,
+    pub armor: u32,
+    pub xp: i32,
+    pub lv: i32,
+    pub gold: i32,
+    pub hp: i32,
+    pub max_hp: i32,
+    pub attack: i32,
+    pub defense: i32,
+    pub wstrength: i32, // ?
+    pub adef: i32, // ?
+}

@@ -10,3 +10,4 @@ compact_str = "0.9.0"
 regex = "1.11.1"
 indoc = "2.0.6"
 clap = { version = "4.5.40", features = ["derive"] }
+thiserror = "2.0.12"
