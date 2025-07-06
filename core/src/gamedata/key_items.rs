@@ -1,7 +1,7 @@
-use compact_str::{format_compact, CompactString, ToCompactString};
+use compact_str::{CompactString, ToCompactString, format_compact};
 
 // Extracted from gml_GlobalScript_scr_keyiteminfo using UndertaleModTool
-pub fn try_get_key_item_name(key_item_id: u32) -> Option<&'static str> {
+pub fn try_get_key_item_name(key_item_id: i32) -> Option<&'static str> {
     match key_item_id {
         0 => Some("---"),
         1 => Some("Cell Phone"),
@@ -28,12 +28,13 @@ pub fn try_get_key_item_name(key_item_id: u32) -> Option<&'static str> {
         19 => Some("LancerCon"), // Amount in global flag 1099
         30 => Some("SheetMusic"),
         31 => Some("ClaimbClaws"),
-        _ => None
+        _ => None,
     }
 }
 
-pub fn display_key_item(key_item_id: u32) -> CompactString {
+pub fn display_key_item(key_item_id: i32) -> CompactString {
     let key_item_name = try_get_key_item_name(key_item_id);
-    key_item_name.map(|n| n.to_compact_string()).unwrap_or_else(|| format_compact!("Key Item {}", 
-        key_item_id))
+    key_item_name
+        .map(|n| n.to_compact_string())
+        .unwrap_or_else(|| format_compact!("Key Item {}", key_item_id))
 }

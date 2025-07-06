@@ -8,26 +8,26 @@ pub enum SingleError {
 
 pub trait IterExt {
     type Item;
-    
+
     fn expect_single(&mut self) -> Result<Self::Item, SingleError>;
 }
 
-impl <T: Iterator> IterExt for T {
+impl<T: Iterator> IterExt for T {
     type Item = T::Item;
 
     fn expect_single(&mut self) -> Result<Self::Item, SingleError> {
         let first = self.next();
-        
+
         if first.is_none() {
             return Err(SingleError::None);
         }
-        
+
         let second = self.next();
-        
+
         if second.is_some() {
             return Err(SingleError::Multiple);
         }
-        
+
         Ok(first.unwrap())
     }
 }
@@ -36,55 +36,51 @@ pub trait ResultArrayExt<const N: usize> {
     type T;
     type E;
 
-    fn flatten_ok(self) -> Result<[Self::T; N], Self::E>; 
+    fn flatten_ok(self) -> Result<[Self::T; N], Self::E>;
 }
 
-impl <T, E, const N: usize> ResultArrayExt<N> for [Result<T, E>; N] {
+impl<T, E, const N: usize> ResultArrayExt<N> for [Result<T, E>; N] {
     type T = T;
     type E = E;
-    
+
     fn flatten_ok(self) -> Result<[Self::T; N], Self::E> {
         let mut ok_array = [const { MaybeUninit::uninit() }; N];
 
         for (i, result) in self.into_iter().enumerate() {
             match result {
                 Ok(value) => {
-                    unsafe {
-                        ok_array[i].write(value);
-                    }
+                    ok_array[i].write(value);
                 },
                 Err(error) => return Err(error),
             }
         }
 
-        unsafe {
-            Ok(std::mem::transmute_copy(&ok_array))
-        }
+        unsafe { Ok(std::mem::transmute_copy(&ok_array)) }
     }
 }
 
 pub trait ResultVecExt {
     type T;
     type E;
-    
+
     fn flatten_ok(self) -> Result<Vec<Self::T>, Self::E>;
 }
 
-impl <T, E> ResultVecExt for Vec<Result<T, E>> {
+impl<T, E> ResultVecExt for Vec<Result<T, E>> {
     type T = T;
     type E = E;
-    
+
     fn flatten_ok(self) -> Result<Vec<Self::T>, Self::E> {
         let mut ok_vec = Vec::with_capacity(self.len());
-        
+
         for result in self {
             match result {
                 Ok(value) => ok_vec.push(value),
                 Err(error) => return Err(error),
             }
         }
-        
-        Ok(ok_vec)   
+
+        Ok(ok_vec)
     }
 }
 

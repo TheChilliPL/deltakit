@@ -1,9 +1,9 @@
+use deltakit::gamedata::parse_filename;
+use deltakit::savefile::SaveData;
+use deltakit::init;
+use log::{error, info};
 use std::env::args;
 use std::process;
-use log::{error, info};
-use deltakit::{init, message};
-use deltakit::gamedata::parse_filename;
-use deltakit::savefile::SaveMetadata;
 
 fn main() {
     init();
@@ -19,6 +19,6 @@ fn main() {
     let file_lines = file_content.lines().collect::<Vec<_>>();
 
     let (chapter_id, _) = parse_filename(path);
-    let metadata = SaveMetadata::read(chapter_id, &file_lines);
+    let metadata = SaveData::read(chapter_id, &file_lines).unwrap();
     info!("{}", metadata.display_info());
 }

@@ -137,16 +137,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "deltakit"
+name = "deltacommit"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "deltakit",
+ "log",
+]
+
+[[package]]
+name = "deltainfo"
+version = "0.1.0"
+dependencies = [
+ "deltakit",
+ "log",
+]
+
+[[package]]
+name = "deltakit"
+version = "0.1.0"
+dependencies = [
  "compact_str",
  "indoc",
  "log",
  "pretty_env_logger",
  "regex",
  "thiserror",
+]
+
+[[package]]
+name = "deltamerge"
+version = "0.1.0"
+dependencies = [
+ "deltakit",
+ "log",
 ]
 
 [[package]]

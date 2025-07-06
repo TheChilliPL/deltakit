@@ -1,9 +1,19 @@
-[package]
-name = "deltakit"
+[workspace]
+members = [
+    "core",
+    "deltacommit",
+    "deltainfo",
+    "deltamerge",
+]
+resolver = "3"
+
+[workspace.package]
 version = "0.1.0"
+authors = ["Chilli <chilli@thechilli.dev>"]
 edition = "2024"
 
-[dependencies]
+[workspace.dependencies]
+deltakit = { path = "./core" }
 log = "0.4.27"
 pretty_env_logger = "0.5.0"
 compact_str = "0.9.0"

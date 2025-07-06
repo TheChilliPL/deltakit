@@ -1,0 +1,13 @@
+[package]
+name = "deltakit"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+log.workspace = true
+pretty_env_logger.workspace = true
+compact_str.workspace = true
+regex.workspace = true
+indoc.workspace = true
+thiserror.workspace = true

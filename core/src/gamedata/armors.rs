@@ -1,7 +1,7 @@
-use compact_str::{format_compact, CompactString, ToCompactString};
+use compact_str::{CompactString, ToCompactString, format_compact};
 
 // Extracted from gml_GlobalScript_scr_armorinfo using UndertaleModTool
-pub fn try_get_armor_name(armor_id: u32) -> Option<&'static str> {
+pub fn try_get_armor_name(armor_id: i32) -> Option<&'static str> {
     match armor_id {
         0 => Some("---"),
         1 => Some("Amber Card"),
@@ -36,12 +36,13 @@ pub fn try_get_armor_name(armor_id: u32) -> Option<&'static str> {
         52 => Some("PowerBand"),
         53 => Some("PrincessRBN"),
         54 => Some("GoldWidow"),
-        _ => None
+        _ => None,
     }
 }
 
-pub fn display_armor(armor_id: u32) -> CompactString {
+pub fn display_armor(armor_id: i32) -> CompactString {
     let armor_name = try_get_armor_name(armor_id);
-    armor_name.map(|n| n.to_compact_string()).unwrap_or_else(|| format_compact!("Armor {}", 
-        armor_id))
+    armor_name
+        .map(|n| n.to_compact_string())
+        .unwrap_or_else(|| format_compact!("Armor {}", armor_id))
 }

@@ -1,7 +1,7 @@
-use compact_str::{format_compact, CompactString, ToCompactString};
+use compact_str::{CompactString, ToCompactString, format_compact};
 
 // Extracted from gml_GlobalScript_scr_weaponinfo
-pub fn try_get_weapon_name(weapon_id: u32) -> Option<&'static str> {
+pub fn try_get_weapon_name(weapon_id: i32) -> Option<&'static str> {
     match weapon_id {
         0 => Some("---"),
         1 => Some("Wood Blade"),
@@ -35,12 +35,13 @@ pub fn try_get_weapon_name(weapon_id: u32) -> Option<&'static str> {
         52 => Some("JusticeAxe"),
         53 => Some("Winglade"),
         54 => Some("AbsorbAx"),
-        _ => None
+        _ => None,
     }
 }
 
-pub fn display_weapon(weapon_id: u32) -> CompactString {
+pub fn display_weapon(weapon_id: i32) -> CompactString {
     let weapon_name = try_get_weapon_name(weapon_id);
-    weapon_name.map(|n| n.to_compact_string()).unwrap_or_else(|| format_compact!("Weapon {}", 
-        weapon_id))
+    weapon_name
+        .map(|n| n.to_compact_string())
+        .unwrap_or_else(|| format_compact!("Weapon {}", weapon_id))
 }

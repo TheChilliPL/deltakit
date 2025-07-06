@@ -1,8 +1,7 @@
-use std::process::id;
-use compact_str::{format_compact, CompactString, ToCompactString};
+use compact_str::{CompactString, format_compact};
 
 // Extracted from scr_get_room_list in gml_GlobalScript_scr_get_room_by_id using UndertaleModTool
-pub fn try_get_room_id(room_index: u32) -> Option<&'static str> {
+pub fn try_get_room_id(room_index: i32) -> Option<&'static str> {
     match room_index {
         // region Chapter 1 rooms
         10283 => Some("room_krisroom"),
@@ -791,12 +790,12 @@ pub fn try_get_room_id(room_index: u32) -> Option<&'static str> {
         40324 => Some("room_dw_castle_tv_zone_battle"),
         40325 => Some("room_dw_castle_tv_zone_minigame"),
         // endregion
-        _ => None
+        _ => None,
     }
 }
 
 // Extracted from scr_roomname in gml_GlobalScript_scr_roomname using UndertaleModTool
-pub fn try_get_room_name(chapter_id: u32, room_index: u32) -> Option<&'static str> {
+pub fn try_get_room_name(chapter_id: i32, room_index: i32) -> Option<&'static str> {
     match chapter_id {
         1 => match room_index - 281 {
             0 => Some("---"),
@@ -856,7 +855,7 @@ pub fn try_get_room_name(chapter_id: u32, room_index: u32) -> Option<&'static st
             208 => Some("TV World - Concert"),
             213 => Some("TV World - Cooking Show"),
             _ => None,
-        }
+        },
         4 => match room_index {
             0 => Some("---"),
             15 => Some("Kris's Room"),
@@ -884,7 +883,7 @@ pub fn try_get_room_name(chapter_id: u32, room_index: u32) -> Option<&'static st
     }
 }
 
-pub fn display_room(room_index: u32) -> CompactString {
+pub fn display_room(room_index: i32) -> CompactString {
     let room_id = try_get_room_id(room_index);
     let chapter_id = room_index / 10000;
     let room_index = room_index % 10000;

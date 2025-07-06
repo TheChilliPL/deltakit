@@ -1,19 +1,21 @@
 extern crate core;
 
 pub mod gamedata;
-pub mod savefile;
 pub mod iter;
-mod SaveParser;
+mod save_parser;
+pub mod savefile;
 
+use log::{LevelFilter, debug, error};
 use std::{panic, process};
-use log::{debug, error, LevelFilter};
 
 pub fn message() -> &'static str {
     "Hello deltakit!"
 }
 
 pub fn init() {
-    pretty_env_logger::formatted_builder().filter_level(LevelFilter::Info).parse_default_env()
+    pretty_env_logger::formatted_builder()
+        .filter_level(LevelFilter::Info)
+        .parse_default_env()
         .init();
     // pretty_env_logger::init();
 

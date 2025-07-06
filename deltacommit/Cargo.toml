@@ -1,0 +1,10 @@
+[package]
+name = "deltacommit"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+deltakit.workspace = true
+log.workspace = true
+clap.workspace = true
