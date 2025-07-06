@@ -1,28 +1,59 @@
+use std::fmt::Display;
+use compact_str::ToCompactString;
 use crate::iter::ResultArrayExt;
 use crate::savefile::{ItemStats, LightworldStats, Stats};
 use thiserror::Error;
+use crate::save_parser::ParseErrorKind::{EofExpected, EofUnexpected, IntParse};
 
 #[derive(Debug, Error)]
-pub enum ParseError {
+pub struct ParseError {
+    pub kind: ParseErrorKind,
+    pub line: Option<usize>,
+}
+
+impl ParseError {
+    pub fn new(kind: ParseErrorKind, line: Option<usize>) -> ParseError {
+        ParseError { kind, line }
+    }
+}
+
+impl From<ParseErrorKind> for ParseError {
+    fn from(kind: ParseErrorKind) -> Self {
+        ParseError::new(kind, None)
+    }
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.kind)?;
+        if let Some(line) = self.line {
+            write!(f, " on line {}", line)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum ParseErrorKind {
     #[error("integer parse error")]
-    IntParseError,
+    IntParse,
     #[error("float parse error")]
-    FloatParseError,
+    FloatParse,
     #[error("file ended unexpectedly")]
     EofUnexpected,
     #[error("expected end of file")]
     EofExpected,
 }
 
-impl From<std::num::ParseIntError> for ParseError {
+impl From<std::num::ParseIntError> for ParseErrorKind {
     fn from(_: std::num::ParseIntError) -> Self {
-        ParseError::IntParseError
+        ParseErrorKind::IntParse
     }
 }
 
-impl From<std::num::ParseFloatError> for ParseError {
+impl From<std::num::ParseFloatError> for ParseErrorKind {
     fn from(_: std::num::ParseFloatError) -> Self {
-        ParseError::FloatParseError
+        ParseErrorKind::FloatParse
     }
 }
 
@@ -43,7 +74,7 @@ impl<'a> SaveParser<'a> {
 
     pub fn parse_string(&mut self) -> Result<&'a str, ParseError> {
         if self.current_line >= self.save_lines.len() {
-            return Err(ParseError::EofUnexpected);
+            return Err(ParseError::new(EofUnexpected, Some(self.current_line)));
         }
 
         let line = self.save_lines[self.current_line];
@@ -52,18 +83,24 @@ impl<'a> SaveParser<'a> {
     }
 
     pub fn parse_int(&mut self) -> Result<i32, ParseError> {
-        Ok(self.parse_string()?.parse::<i32>()?)
+        Ok(
+            self.parse_string()?.trim().parse::<i32>()
+                .map_err(|e| ParseError::new(e.into(), Some(self.current_line)))?
+        )
     }
 
     pub fn parse_float(&mut self) -> Result<f32, ParseError> {
-        Ok(self.parse_string()?.parse::<f32>()?)
+        Ok(
+            self.parse_string()?.trim().parse::<f32>()
+                .map_err(|e| ParseError::new(e.into(), Some(self.current_line)))?
+        )
     }
 
     pub fn parse_bool(&mut self) -> Result<bool, ParseError> {
         match self.parse_int()? {
             0 => Ok(false),
             1 => Ok(true),
-            _ => Err(ParseError::IntParseError),
+            _ => Err(ParseError::new(IntParse, Some(self.current_line))),
         }
     }
 
@@ -79,7 +116,7 @@ impl<'a> SaveParser<'a> {
             weapon: self.parse_int()?,
             armor1: self.parse_int()?,
             armor2: self.parse_int()?,
-            weapon_style: self.parse_int()?,
+            weapon_style: self.parse_string()?.to_compact_string(),
 
             item_stats: [(); 4]
                 .map(|_| {
@@ -99,9 +136,9 @@ impl<'a> SaveParser<'a> {
                             0
                         },
                         item_element_amount: if self.chapter >= 2 {
-                            self.parse_int()?
+                            self.parse_float()?
                         } else {
-                            0
+                            0.0
                         },
                     })
                 })
@@ -136,7 +173,7 @@ impl<'a> SaveParser<'a> {
                 return Ok(());
             }
 
-            Err(ParseError::EofExpected)
+            Err(ParseError::new(EofExpected, Some(self.current_line)))
         } else {
             Ok(())
         }

@@ -29,18 +29,22 @@ pub struct SaveData<'a> {
     pub weapons: Vec<i32>,
     pub armors: Vec<i32>,
     pub storage: Option<Vec<i32>>,
-    pub tension: i32,
-    pub max_tension: i32,
+    pub tension: f32,
+    pub max_tension: f32,
     pub lightworld_stats: LightworldStats,
     pub lightworld_items: [i32; 8],
     pub lightworld_phone: [i32; 8],
-    pub flags: [i32; 2500],
+    pub flags: [f32; 2500],
     pub plot_value: i32,
     pub room_id: i32,
     pub time_played: Duration,
 }
 
 impl SaveData<'_> {
+    /// Parses the Deltarune save data.
+    ///
+    /// Made based on `gml_GlobalScript_scr_saveprocess` (see `research/saveprocess` directory for
+    /// decompiled code).
     pub fn read<'a>(chapter: i32, save_lines: &'a [&'a str]) -> Result<SaveData<'a>, ParseError> {
         if chapter < 1 {
             panic!("Invalid chapter number");
@@ -123,8 +127,8 @@ impl SaveData<'_> {
             }
         }
 
-        let tension = parser.parse_int()?;
-        let max_tension = parser.parse_int()?;
+        let tension = parser.parse_float()?;
+        let max_tension = parser.parse_float()?;
 
         let lightworld_stats = parser.parse_lightworld_stats()?;
 
@@ -136,7 +140,7 @@ impl SaveData<'_> {
             lightworld_phone[i] = parser.parse_int()?;
         }
 
-        let flags = [(); 2500].map(|_| parser.parse_int()).flatten_ok()?; // Int?
+        let flags = [(); 2500].map(|_| parser.parse_float()).flatten_ok()?;
 
         if is_chapter_1 {
             // Chapter 1 stores 9999 flags, we need to skip the rest of them
@@ -148,7 +152,7 @@ impl SaveData<'_> {
 
         let plot_value = parser.parse_int()?;
         let room_id = parser.parse_int()?;
-        let time_played_frames = parser.parse_int()?;
+        let time_played_frames = parser.parse_float()?;
         let time_played = Duration::from_secs_f64(time_played_frames as f64 / 30.0);
 
         parser.expect_eof()?;
@@ -207,7 +211,7 @@ impl SaveData<'_> {
             .map(|chunk| chunk.join(" "))
             .collect::<Vec<_>>()
             .join("\n");
-        format!("---------------\n{}:\n{}", name, inventory)
+        format!("---------------\n{}:\n{}\n", name, inventory)
     }
 
     pub fn display_info(&self) -> String {
@@ -263,7 +267,7 @@ pub struct ItemStats {
     // Chapter 2 and up
     // For chapter 1, both set to 0
     pub item_element: i32,
-    pub item_element_amount: i32,
+    pub item_element_amount: f32,
 }
 
 #[derive(Debug)]
@@ -278,7 +282,7 @@ pub struct Stats {
     pub weapon: i32,
     pub armor1: i32,
     pub armor2: i32,
-    pub weapon_style: i32,
+    pub weapon_style: CompactString,
 
     pub item_stats: [ItemStats; 4],
     pub spells: [i32; 12],
