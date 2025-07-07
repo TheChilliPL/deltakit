@@ -4,6 +4,7 @@ pub mod gamedata;
 pub mod iter;
 mod save_parser;
 pub mod savefile;
+pub mod merging;
 
 use log::{LevelFilter, debug, error};
 use std::{panic, process};
