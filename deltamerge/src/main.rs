@@ -40,13 +40,13 @@ fn main() {
     let ours_lines = ours_str.lines().collect::<Vec<_>>();
     let ours_data = SaveData::read(chapter_id, &ours_lines).unwrap();
 
-    let theirs_str = std::fs::read_to_string(&theirs).unwrap();
+    let theirs_str = std::fs::read_to_string(theirs).unwrap();
     let theirs_lines = theirs_str.lines().collect::<Vec<_>>();
     let theirs_data = SaveData::read(chapter_id, &theirs_lines).unwrap();
 
-    let ancestor_str = std::fs::read_to_string(&common_ancestor).unwrap();
+    let ancestor_str = std::fs::read_to_string(common_ancestor).unwrap();
     let ancestor_lines = ancestor_str.lines().collect::<Vec<_>>();
-    let ancestor_data = if ancestor_lines.len() > 0 {
+    let ancestor_data = if !ancestor_lines.is_empty() {
         Some(SaveData::read(chapter_id, &ancestor_lines).unwrap())
     } else { None };
 

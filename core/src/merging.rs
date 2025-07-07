@@ -1,9 +1,6 @@
-use std::clone;
-use std::cmp::{max, min};
 use std::fmt::Display;
 use std::ops::{Add, Sub};
-use std::process::Output;
-use compact_str::{CompactString, ToCompactString};
+use compact_str::CompactString;
 use indoc::indoc;
 use log::warn;
 use crate::gamedata::armors::display_armor;
@@ -12,8 +9,8 @@ use crate::gamedata::key_items::display_key_item;
 use crate::gamedata::lightworld_items::display_lightworld_item;
 use crate::gamedata::phone_numbers::display_phone_number;
 use crate::gamedata::weapons::display_weapon;
-use crate::merging;
 use crate::savefile::{ItemStats, LightworldStats, SaveData, Stats};
+use crate::serialize::Serializable;
 
 #[derive(Clone, Debug)]
 pub enum MergeResult<T> {
@@ -36,7 +33,7 @@ impl <T> MergeResult<T> {
             }
         }
     }
-    
+
     pub fn map_conflict(self, f: impl FnOnce(T, T, Option<T>) -> MergeResult<T>) -> MergeResult<T> {
         match self {
             MergeResult::Resolved(v) => MergeResult::Resolved(v),
@@ -57,7 +54,7 @@ impl <T: Display> MergeResult<T> {
                 let marker_o_a = "|".repeat(conflict_marker_length);
                 let marker_a_t = "=".repeat(conflict_marker_length);
                 let marker_end = ">".repeat(conflict_marker_length);
-                
+
                 format!(
                     indoc!{"
                         {} ours
@@ -82,7 +79,7 @@ impl <T: Display> MergeResult<T> {
                 let marker_start = "<".repeat(conflict_marker_length);
                 let marker_o_t = "=".repeat(conflict_marker_length);
                 let marker_end = ">".repeat(conflict_marker_length);
-                
+
                 format!(
                     indoc!{"
                         {} ours
@@ -99,9 +96,9 @@ impl <T: Display> MergeResult<T> {
             }
         }
     }
-    
+
     pub fn to_merge_compact_string(&self, conflict_marker_length: usize) -> CompactString {
-        self.to_merge_string(conflict_marker_length).to_compact_string()
+        self.to_merge_string(conflict_marker_length).serialize()
     }
 }
 
@@ -203,17 +200,17 @@ fn merge_item_stats(
     ancestor: Option<&ItemStats>,
     chapter: i32,
 ) -> Result<(), &'static str> {
-    output.push(merge_simple(ours.attack, theirs.attack, ancestor.map(|a| a.attack)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.defense, theirs.defense, ancestor.map(|a| a.defense)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.magic, theirs.magic, ancestor.map(|a| a.magic)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.bolts, theirs.bolts, ancestor.map(|a| a.bolts)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.graze_amount, theirs.graze_amount, ancestor.map(|a| a.graze_amount)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.graze_size, theirs.graze_size, ancestor.map(|a| a.graze_size)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.bolts_speed, theirs.bolts_speed, ancestor.map(|a| a.bolts_speed)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.item_special, theirs.item_special, ancestor.map(|a| a.item_special)).map(|v| v.to_compact_string()));
+    output.push(merge_simple(ours.attack, theirs.attack, ancestor.map(|a| a.attack)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.defense, theirs.defense, ancestor.map(|a| a.defense)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.magic, theirs.magic, ancestor.map(|a| a.magic)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.bolts, theirs.bolts, ancestor.map(|a| a.bolts)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.graze_amount, theirs.graze_amount, ancestor.map(|a| a.graze_amount)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.graze_size, theirs.graze_size, ancestor.map(|a| a.graze_size)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.bolts_speed, theirs.bolts_speed, ancestor.map(|a| a.bolts_speed)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.item_special, theirs.item_special, ancestor.map(|a| a.item_special)).map(|v| v.serialize()));
     if chapter > 1 {
-        output.push(merge_simple(ours.item_element, theirs.item_element, ancestor.map(|a| a.item_element)).map(|v| v.to_compact_string()));
-        output.push(merge_simple(ours.item_element_amount, theirs.item_element_amount, ancestor.map(|a| a.item_element_amount)).map(|v| v.to_compact_string()));
+        output.push(merge_simple(ours.item_element, theirs.item_element, ancestor.map(|a| a.item_element)).map(|v| v.serialize()));
+        output.push(merge_simple(ours.item_element_amount, theirs.item_element_amount, ancestor.map(|a| a.item_element_amount)).map(|v| v.serialize()));
     }
 
     Ok(())
@@ -227,38 +224,38 @@ fn merge_stats(
     chapter: i32,
 ) -> Result<(), &'static str> {
     let max_hp = merge_simple(ours.max_hp, theirs.max_hp, ancestor.map(|a| a.max_hp))
-        .map(|v| v.to_compact_string());
+        .map(|v| v.serialize());
 
     output.push(max_hp.clone()); // HP, healed
     output.push(max_hp);
-    output.push(merge_simple(ours.attack, theirs.attack, ancestor.map(|a| a.attack)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.defense, theirs.defense, ancestor.map(|a| a.defense)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.magic, theirs.magic, ancestor.map(|a| a.magic)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.guts, theirs.guts, ancestor.map(|a| a.guts)).map(|v| v.to_compact_string()));
-    output.push(MergeResult::Resolved(ours.weapon.to_compact_string()));
-    output.push(MergeResult::Resolved(ours.armor1.to_compact_string()));
-    output.push(MergeResult::Resolved(ours.armor2.to_compact_string()));
+    output.push(merge_simple(ours.attack, theirs.attack, ancestor.map(|a| a.attack)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.defense, theirs.defense, ancestor.map(|a| a.defense)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.magic, theirs.magic, ancestor.map(|a| a.magic)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.guts, theirs.guts, ancestor.map(|a| a.guts)).map(|v| v.serialize()));
+    output.push(MergeResult::Resolved(ours.weapon.serialize()));
+    output.push(MergeResult::Resolved(ours.armor1.serialize()));
+    output.push(MergeResult::Resolved(ours.armor2.serialize()));
     output.push(MergeResult::Resolved(ours.weapon_style.clone()));
 
     for i in 0..4 {
-        output.push(MergeResult::Resolved(ours.item_stats[i].attack.to_compact_string()));
-        output.push(MergeResult::Resolved(ours.item_stats[i].defense.to_compact_string()));
-        output.push(MergeResult::Resolved(ours.item_stats[i].magic.to_compact_string()));
-        output.push(MergeResult::Resolved(ours.item_stats[i].bolts.to_compact_string()));
-        output.push(MergeResult::Resolved(ours.item_stats[i].graze_amount.to_compact_string()));
-        output.push(MergeResult::Resolved(ours.item_stats[i].graze_size.to_compact_string()));
-        output.push(MergeResult::Resolved(ours.item_stats[i].bolts_speed.to_compact_string()));
-        output.push(MergeResult::Resolved(ours.item_stats[i].item_special.to_compact_string()));
+        output.push(MergeResult::Resolved(ours.item_stats[i].attack.serialize()));
+        output.push(MergeResult::Resolved(ours.item_stats[i].defense.serialize()));
+        output.push(MergeResult::Resolved(ours.item_stats[i].magic.serialize()));
+        output.push(MergeResult::Resolved(ours.item_stats[i].bolts.serialize()));
+        output.push(MergeResult::Resolved(ours.item_stats[i].graze_amount.serialize()));
+        output.push(MergeResult::Resolved(ours.item_stats[i].graze_size.serialize()));
+        output.push(MergeResult::Resolved(ours.item_stats[i].bolts_speed.serialize()));
+        output.push(MergeResult::Resolved(ours.item_stats[i].item_special.serialize()));
         if chapter > 1 {
-            output.push(MergeResult::Resolved(ours.item_stats[i].item_element.to_compact_string()));
-            output.push(MergeResult::Resolved(ours.item_stats[i].item_element_amount.to_compact_string()));
+            output.push(MergeResult::Resolved(ours.item_stats[i].item_element.serialize()));
+            output.push(MergeResult::Resolved(ours.item_stats[i].item_element_amount.serialize()));
         }
     }
-    
+
     for i in 0..12 {
         output.push(
             merge_same(ours.spells[i], theirs.spells[i], ancestor.map(|a| a.spells[i]))
-                .map(|v| v.to_compact_string())
+                .map(|v| v.serialize())
         );
     }
 
@@ -329,17 +326,17 @@ fn merge_lightworld_stats(
     theirs: &LightworldStats,
     ancestor: Option<&LightworldStats>,
 ) {
-    output.push(merge_simple(ours.weapon, theirs.weapon, ancestor.map(|a| a.weapon)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.armor, theirs.armor, ancestor.map(|a| a.armor)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.xp, theirs.xp, ancestor.map(|a| a.xp)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.lv, theirs.lv, ancestor.map(|a| a.lv)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.gold, theirs.gold, ancestor.map(|a| a.gold)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.hp, theirs.hp, ancestor.map(|a| a.hp)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.max_hp, theirs.max_hp, ancestor.map(|a| a.max_hp)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.attack, theirs.attack, ancestor.map(|a| a.attack)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.defense, theirs.defense, ancestor.map(|a| a.defense)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.wstrength, theirs.wstrength, ancestor.map(|a| a.wstrength)).map(|v| v.to_compact_string()));
-    output.push(merge_simple(ours.adef, theirs.adef, ancestor.map(|a| a.adef)).map(|v| v.to_compact_string()));
+    output.push(merge_simple(ours.weapon, theirs.weapon, ancestor.map(|a| a.weapon)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.armor, theirs.armor, ancestor.map(|a| a.armor)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.xp, theirs.xp, ancestor.map(|a| a.xp)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.lv, theirs.lv, ancestor.map(|a| a.lv)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.gold, theirs.gold, ancestor.map(|a| a.gold)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.hp, theirs.hp, ancestor.map(|a| a.hp)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.max_hp, theirs.max_hp, ancestor.map(|a| a.max_hp)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.attack, theirs.attack, ancestor.map(|a| a.attack)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.defense, theirs.defense, ancestor.map(|a| a.defense)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.wstrength, theirs.wstrength, ancestor.map(|a| a.wstrength)).map(|v| v.serialize()));
+    output.push(merge_simple(ours.adef, theirs.adef, ancestor.map(|a| a.adef)).map(|v| v.serialize()));
 }
 
 pub fn merge_savefiles(
@@ -352,20 +349,20 @@ pub fn merge_savefiles(
     if theirs.chapter > chapter || ancestor.is_some_and(|a| a.chapter > chapter) {
         return Err("Chapter mismatch")
     }
-    
+
     let mut data: Vec<MergeResult<CompactString>> = Vec::with_capacity(if chapter == 1 { 10318 } 
     else { 3055 });
-    
-    data.push(MergeResult::Resolved(ours.true_name.to_compact_string()));
-    
+
+    data.push(MergeResult::Resolved(ours.true_name.serialize()));
+
     for i in 0..6 {
-        data.push(MergeResult::Resolved(ours.vessel_names[i].to_compact_string()));
+        data.push(MergeResult::Resolved(ours.vessel_names[i].serialize()));
     }
-    
+
     for i in 0..3 {
-        data.push(MergeResult::Resolved(ours.party[i].to_compact_string()));
+        data.push(MergeResult::Resolved(ours.party[i].serialize()));
     }
-    
+
     data.push(
         merge_values(
             ours.dark_dollars,
@@ -374,30 +371,30 @@ pub fn merge_savefiles(
             Some(0),
             None,
             "dark dollars",
-        ).map(|v| v.to_compact_string())
+        ).map(|v| v.serialize())
     );
-    
+
     data.push(
         merge_max(
             ours.xp,
             theirs.xp,
-        ).map(|v| v.to_compact_string())
+        ).map(|v| v.serialize())
     );
-    
+
     data.push(
         merge_max(
             ours.level,
             theirs.level,
-        ).map(|v| v.to_compact_string())
+        ).map(|v| v.serialize())
     );
-    
+
     data.push(
         // merge_simple(
         //     ours.inv,
         //     theirs.inv,
         //     ancestor.map(|a| a.inv),
-        // ).map(|v| v.to_compact_string())
-        MergeResult::Resolved(ours.inv.to_compact_string())
+        // ).map(|v| v.serialize())
+        MergeResult::Resolved(ours.inv.serialize())
     );
 
     data.push(
@@ -405,20 +402,20 @@ pub fn merge_savefiles(
         //     ours.invc,
         //     theirs.invc,
         //     ancestor.map(|a| a.invc),
-        // ).map(|v| v.to_compact_string())
-        MergeResult::Resolved(ours.invc.to_compact_string())
+        // ).map(|v| v.serialize())
+        MergeResult::Resolved(ours.invc.serialize())
     );
-    
+
     data.push(
-        MergeResult::Resolved(if ours.is_darkworld { "1" } else { "0" }.to_compact_string())
+        MergeResult::Resolved(if ours.is_darkworld { "1" } else { "0" }.serialize())
     );
-    
+
     // stats
     let stat_blocks = match chapter {
         1 => 4,
         _ => 5,
     };
-    
+
     for i in 0..stat_blocks {
         merge_stats(
             &mut data,
@@ -428,26 +425,26 @@ pub fn merge_savefiles(
             chapter,
         )?;
     }
-    
-    data.push(merge_simple(ours.bolt_speed, theirs.bolt_speed, ancestor.map(|a| a.bolt_speed)).map(|v| v.to_compact_string()));
-    data.push(merge_simple(ours.graze_amount, theirs.graze_amount, ancestor.map(|a| a.graze_amount)).map(|v| v.to_compact_string()));
-    data.push(merge_simple(ours.graze_size, theirs.graze_size, ancestor.map(|a| a.graze_size)).map(|v| v.to_compact_string()));
-    
+
+    data.push(merge_simple(ours.bolt_speed, theirs.bolt_speed, ancestor.map(|a| a.bolt_speed)).map(|v| v.serialize()));
+    data.push(merge_simple(ours.graze_amount, theirs.graze_amount, ancestor.map(|a| a.graze_amount)).map(|v| v.serialize()));
+    data.push(merge_simple(ours.graze_size, theirs.graze_size, ancestor.map(|a| a.graze_size)).map(|v| v.serialize()));
+
     // INVENTORY, STORAGE...
-    
+
     let mut inventory_and_storage = Vec::with_capacity(12 + if chapter > 1 { 72 } else { 0 });
     inventory_and_storage.extend_from_slice(&ours.inventory[0..12]);
     if chapter > 1 {
-        inventory_and_storage.extend_from_slice(&ours.storage.as_ref().unwrap());
+        inventory_and_storage.extend_from_slice(ours.storage.as_ref().unwrap());
     }
 
     let mut their_inventory_and_storage = Vec::with_capacity(12 + if chapter > 1 { 72 } else { 0 });
     their_inventory_and_storage.extend_from_slice(&theirs.inventory[0..12]);
     if chapter > 1 {
-        their_inventory_and_storage.extend_from_slice(&theirs.storage.as_ref().unwrap());
+        their_inventory_and_storage.extend_from_slice(theirs.storage.as_ref().unwrap());
     }
 
-    let mut key_items = ours.key_items.clone();
+    let mut key_items = ours.key_items;
     let mut weapons = ours.weapons.clone();
     let mut their_weapons = theirs.weapons.clone();
     for (i, stats) in theirs.stats.iter().enumerate() {
@@ -471,61 +468,61 @@ pub fn merge_savefiles(
         &mut inventory_and_storage,
         &their_inventory_and_storage,
         "item",
-        |i| display_item(i),
+        display_item,
     );
 
     merge_inventories(
         &mut key_items,
         &theirs.key_items,
         "key item",
-        |i| display_key_item(i),
+        display_key_item,
     );
 
     merge_inventories(
         &mut weapons,
         &their_weapons,
         "weapon",
-        |i| display_weapon(i),
+        display_weapon,
     );
 
     merge_inventories(
         &mut armors,
         &their_weapons,
         "armor",
-        |i| display_armor(i),
+        display_armor,
     );
 
     for i in 0..12 {
-        data.push(MergeResult::Resolved(inventory_and_storage[i].to_compact_string()));
-        data.push(MergeResult::Resolved(key_items[i].to_compact_string()));
+        data.push(MergeResult::Resolved(inventory_and_storage[i].serialize()));
+        data.push(MergeResult::Resolved(key_items[i].serialize()));
 
         if chapter == 1 {
-            data.push(MergeResult::Resolved(weapons[i].to_compact_string()));
-            data.push(MergeResult::Resolved(armors[i].to_compact_string()));
+            data.push(MergeResult::Resolved(weapons[i].serialize()));
+            data.push(MergeResult::Resolved(armors[i].serialize()));
         }
     }
-    
-    data.push(MergeResult::Resolved(ours.inventory[12].to_compact_string()));
-    data.push(MergeResult::Resolved(key_items[12].to_compact_string()));
-    
+
+    data.push(MergeResult::Resolved(ours.inventory[12].serialize()));
+    data.push(MergeResult::Resolved(key_items[12].serialize()));
+
     if chapter == 1 {
-        data.push(MergeResult::Resolved(weapons[12].to_compact_string()));
-        data.push(MergeResult::Resolved(armors[12].to_compact_string()));
+        data.push(MergeResult::Resolved(weapons[12].serialize()));
+        data.push(MergeResult::Resolved(armors[12].serialize()));
     }
 
     if chapter != 1 {
         for i in 0..48 {
-            data.push(MergeResult::Resolved(weapons[i].to_compact_string()));
-            data.push(MergeResult::Resolved(armors[i].to_compact_string()));
+            data.push(MergeResult::Resolved(weapons[i].serialize()));
+            data.push(MergeResult::Resolved(armors[i].serialize()));
         }
 
         for i in 0..72 {
-            data.push(MergeResult::Resolved(inventory_and_storage[i + 12].to_compact_string()));
+            data.push(MergeResult::Resolved(inventory_and_storage[i + 12].serialize()));
         }
     }
 
-    data.push(merge_simple(ours.tension, theirs.tension, ancestor.map(|a| a.tension)).map(|v| v.to_compact_string()));
-    data.push(merge_simple(ours.max_tension, theirs.max_tension, ancestor.map(|a| a.max_tension)).map(|v| v.to_compact_string()));
+    data.push(merge_simple(ours.tension, theirs.tension, ancestor.map(|a| a.tension)).map(|v| v.serialize()));
+    data.push(merge_simple(ours.max_tension, theirs.max_tension, ancestor.map(|a| a.max_tension)).map(|v| v.serialize()));
 
     merge_lightworld_stats(
         &mut data,
@@ -534,44 +531,44 @@ pub fn merge_savefiles(
         ancestor.map(|a| &a.lightworld_stats),
     );
 
-    let mut lightworld_items = ours.lightworld_items.clone();
-    let mut phone_numbers = ours.lightworld_phone.clone();
+    let mut lightworld_items = ours.lightworld_items;
+    let mut phone_numbers = ours.lightworld_phone;
 
     merge_inventories(
         &mut lightworld_items,
         &theirs.lightworld_items,
         "lightworld item",
-        |i| display_lightworld_item(i),
+        display_lightworld_item,
     );
 
     merge_inventories(
         &mut phone_numbers,
         &theirs.lightworld_phone,
         "phone number",
-        |i| display_phone_number(i),
+        display_phone_number,
     );
 
     for i in 0..8 {
-        data.push(MergeResult::Resolved(lightworld_items[i].to_compact_string()));
-        data.push(MergeResult::Resolved(phone_numbers[i].to_compact_string()));
+        data.push(MergeResult::Resolved(lightworld_items[i].serialize()));
+        data.push(MergeResult::Resolved(phone_numbers[i].serialize()));
     }
 
     for i in 0..2500 {
         if ancestor.is_some() {
-            data.push(merge_simple(ours.flags[i], theirs.flags[i], ancestor.map(|a| a.flags[i])).map(|v| v.to_compact_string()));
+            data.push(merge_simple(ours.flags[i], theirs.flags[i], ancestor.map(|a| a.flags[i])).map(|v| v.serialize()));
         } else {
-            data.push(merge_max(ours.flags[i], theirs.flags[i]).map(|v| v.to_compact_string()));
+            data.push(merge_max(ours.flags[i], theirs.flags[i]).map(|v| v.serialize()));
         }
     }
-    
+
     if chapter == 1 {
         for _ in 2500..9999 {
-            data.push(MergeResult::Resolved("0".to_compact_string()));
+            data.push(MergeResult::Resolved("0".serialize()));
         }
     }
-    
-    data.push(MergeResult::Resolved(ours.plot_value.to_compact_string()));
-    data.push(MergeResult::Resolved(ours.room_id.to_compact_string()));
+
+    data.push(MergeResult::Resolved(ours.plot_value.serialize()));
+    data.push(MergeResult::Resolved(ours.room_id.serialize()));
     if ancestor.is_some() {
         data.push(merge_values(
             ours.time_played.as_secs() * 30,
@@ -579,9 +576,9 @@ pub fn merge_savefiles(
             ancestor.map(|a| a.time_played.as_secs() * 30),
             None, None,
             "time played"
-        ).map(|v| v.to_compact_string()));
+        ).map(|v| v.serialize()));
     } else {
-        data.push(merge_max(ours.time_played.as_secs() * 30, theirs.time_played.as_secs() * 30).map(|v| v.to_compact_string()));
+        data.push(merge_max(ours.time_played.as_secs() * 30, theirs.time_played.as_secs() * 30).map(|v| v.serialize()));
     }
 
     assert_eq!(data.len(), if chapter == 1 { 10318 } else { 3055 }, "Unexpected line count");
@@ -592,7 +589,7 @@ pub fn merge_savefiles(
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_merge_markers() {
         let conflict = MergeResult::Conflict {
@@ -600,7 +597,7 @@ mod tests {
             theirs: "B",
             ancestor: Some("C")
         };
-        
+
         assert_eq!(
             conflict.to_merge_string(5),
             indoc!{"

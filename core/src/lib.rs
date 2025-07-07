@@ -5,6 +5,7 @@ pub mod iter;
 mod save_parser;
 pub mod savefile;
 pub mod merging;
+mod serialize;
 
 use log::{LevelFilter, debug, error};
 use std::{panic, process};

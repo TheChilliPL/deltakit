@@ -83,17 +83,13 @@ impl<'a> SaveParser<'a> {
     }
 
     pub fn parse_int(&mut self) -> Result<i32, ParseError> {
-        Ok(
-            self.parse_string()?.trim().parse::<i32>()
-                .map_err(|e| ParseError::new(e.into(), Some(self.current_line)))?
-        )
+        self.parse_string()?.trim().parse::<i32>()
+                .map_err(|e| ParseError::new(e.into(), Some(self.current_line)))
     }
 
     pub fn parse_float(&mut self) -> Result<f32, ParseError> {
-        Ok(
-            self.parse_string()?.trim().parse::<f32>()
-                .map_err(|e| ParseError::new(e.into(), Some(self.current_line)))?
-        )
+        self.parse_string()?.trim().parse::<f32>()
+                .map_err(|e| ParseError::new(e.into(), Some(self.current_line)))
     }
 
     pub fn parse_bool(&mut self) -> Result<bool, ParseError> {

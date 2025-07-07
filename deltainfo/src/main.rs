@@ -1,9 +1,7 @@
 use deltakit::gamedata::parse_filename;
 use deltakit::savefile::SaveData;
 use deltakit::init;
-use log::{error, info};
-use std::env::args;
-use std::process;
+use log::info;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
