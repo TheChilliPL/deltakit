@@ -578,7 +578,10 @@ pub fn merge_savefiles(
             "time played"
         ).map(|v| v.serialize()));
     } else {
-        data.push(merge_max(ours.time_played.as_secs() * 30, theirs.time_played.as_secs() * 30).map(|v| v.serialize()));
+        data.push(
+            merge_max(ours.time_played.as_secs_f64() * 30.0,
+                      theirs.time_played.as_secs_f64() * 30.0)
+                .map(|v| (v as f32).serialize()));
     }
 
     assert_eq!(data.len(), if chapter == 1 { 10318 } else { 3055 }, "Unexpected line count");
