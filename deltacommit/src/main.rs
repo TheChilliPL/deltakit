@@ -11,8 +11,16 @@ use std::{process, str};
 #[derive(Parser, Debug)]
 #[command()]
 struct Args {
+    /// Commit message to use.
+    ///
+    /// If multiple are provided, there's an empty line after the first one, and single
+    /// line breaks between the rest.
     #[arg(short, long)]
     message: Vec<String>,
+    /// Room name to use in the message.
+    /// If not provided, the room name extracted from the game is used (supported up to chapter 4).
+    #[arg(short, long)]
+    room: Option<String>,
 }
 
 fn main() {
@@ -40,7 +48,7 @@ fn main() {
     let status = status
         .lines()
         .map(|line| line.trim())
-        .filter(|line| line.starts_with("modified:"))
+        .filter(|line| line.starts_with("modified:") | line.starts_with("new file:"))
         .flat_map(|line| {
             let filename = line.split(":").nth(1).unwrap_or("").trim();
             let (chapter, save) = parse_filename(filename);
@@ -72,15 +80,18 @@ fn main() {
 
     let save_info = SaveData::read(chapter, &save_lines).unwrap();
 
-    let room_id = save_info.room_id;
-    let room_name = try_get_room_name(room_id / 10000, room_id % 10000);
+    let room = if let Some(ref room) = cli.room { room } else {
+        let room_id = save_info.room_id;
+        let room_name = try_get_room_name(room_id / 10000, room_id % 10000);
 
-    if room_name.is_none() {
-        error!("Failed to find room name for room ID {}", room_id);
-        process::exit(255);
-    }
+        if room_name.is_none() {
+            error!("Failed to find room name for room ID {}", room_id);
+            info!("Hint: You can use -r|--room to specify the room name manually");
+            process::exit(255);
+        }
 
-    let room_name = room_name.unwrap();
+        room_name.unwrap()
+    };
 
     let time_played_secs = save_info.time_played.as_secs();
     let time_played_h = time_played_secs / 3600;
@@ -96,7 +107,7 @@ fn main() {
         custom_message[0] = custom_message[0].clone() + "\n";
         custom_message = custom_message.into_iter().map(|msg| msg + "\n").collect();
     }
-    custom_message.push(format!("\"{}\" - {}", room_name, time_played));
+    custom_message.push(format!("\"{}\" - {}", room, time_played));
 
     let commit_message = custom_message.join("");
 
@@ -120,6 +131,6 @@ fn main() {
 
     info!(
         "Committed successfully. Room {}, played for {}.",
-        room_name, time_played
+        room, time_played
     );
 }
