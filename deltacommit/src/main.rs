@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{arg, Parser};
 use deltakit::gamedata::parse_filename;
 use deltakit::gamedata::rooms::try_get_room_name;
 use deltakit::iter::{IterExt, SingleError};
@@ -18,9 +18,13 @@ struct Args {
     #[arg(short, long)]
     message: Vec<String>,
     /// Room name to use in the message.
+    ///
     /// If not provided, the room name extracted from the game is used (supported up to chapter 4).
     #[arg(short, long)]
     room: Option<String>,
+    /// Amends the previous commit, replacing the message entirely.
+    #[arg(long)]
+    amend: bool,
 }
 
 fn main() {
@@ -118,11 +122,14 @@ fn main() {
         process::exit(255);
     }
 
-    let commit_result = Command::new("git")
-        .arg("commit")
+    let mut commit = Command::new("git");
+    commit.arg("commit")
         .arg("-m")
-        .arg(&commit_message)
-        .output();
+        .arg(&commit_message);
+    if cli.amend {
+        commit.arg("--amend");
+    }
+    let commit_result = commit.output();
 
     if commit_result.is_err() || !commit_result.as_ref().unwrap().status.success() {
         error!("Failed to run git commit. {}", commit_message);

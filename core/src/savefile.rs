@@ -35,7 +35,7 @@ pub struct SaveData<'a> {
     pub lightworld_items: [i32; 8],
     pub lightworld_phone: [i32; 8],
     pub flags: [f32; 2500],
-    pub plot_value: i32,
+    pub plot_value: f32,
     pub room_id: i32,
     pub time_played: Duration,
 }
@@ -150,7 +150,7 @@ impl SaveData<'_> {
             }
         }
 
-        let plot_value = parser.parse_int()?;
+        let plot_value = parser.parse_float()?;
         let room_id = parser.parse_int()?;
         let time_played_frames = parser.parse_float()?;
         let time_played = Duration::from_secs_f64(time_played_frames as f64 / 30.0);
@@ -232,7 +232,7 @@ impl SaveData<'_> {
                 Plot value {}
                 {}{}
                 Played for {}
-                {}{}
+                {}{}{}
             "},
             self.chapter,
             self.true_name,
@@ -249,6 +249,10 @@ impl SaveData<'_> {
             time_played,
             Self::display_inventory(Some(&self.inventory[..]), "Items", display_item),
             Self::display_inventory(Some(&self.key_items[..]), "Keys", display_key_item),
+            if self.storage.is_some() {
+                Self::display_inventory(Some(self.storage.as_deref().unwrap()), "Storage",
+                                        display_item)
+            } else { "".to_string() }
         )
     }
 }
