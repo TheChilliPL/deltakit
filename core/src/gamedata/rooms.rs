@@ -795,6 +795,7 @@ pub fn try_get_room_id(room_index: i32) -> Option<&'static str> {
 }
 
 // Extracted from scr_roomname in gml_GlobalScript_scr_roomname using UndertaleModTool
+// TODO Parse room IDs from exported data instead of guessing
 pub fn try_get_room_name(chapter_id: i32, room_index: i32) -> Option<&'static str> {
     match chapter_id {
         1 => match room_index - 281 {
@@ -829,6 +830,7 @@ pub fn try_get_room_name(chapter_id: i32, room_index: i32) -> Option<&'static st
             78 => Some("Cyber Field - Entrance"),
             83 => Some("Cyber Field - Arcade Machine"),
             89 => Some("Cyber Field - Music Shop"),
+            95 => Some("Dark World?"),
             112 => Some("Cyber City - Entrance"),
             115 => Some("Cyber City - First Alleyway"),
             126 => Some("Cyber City - Mouse Alley"),
@@ -844,16 +846,16 @@ pub fn try_get_room_name(chapter_id: i32, room_index: i32) -> Option<&'static st
             199 | 200 => Some("Queen's Mansion - Rooftop"),
             _ => None,
         },
-        3 => match room_index + 1 {
+        3 => match room_index {
             0 => Some("---"),
             98 => Some("Dark World"),
             135 => Some("Green Room"),
-            194 => Some("TV World - Before the Show"),
+            195 => Some("TV World - Before the Show"),
             109 => Some("Cold Place"),
-            195 => Some("TV World - Entrance"),
-            177 => Some("TV World - Goulden Sam"),
-            208 => Some("TV World - Concert"),
-            213 => Some("TV World - Cooking Show"),
+            196 => Some("TV World - Entrance"),
+            178 => Some("TV World - Goulden Sam"),
+            209 => Some("TV World - Concert"),
+            214 => Some("TV World - Cooking Show"),
             _ => None,
         },
         4 => match room_index {
