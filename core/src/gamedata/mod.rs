@@ -11,7 +11,7 @@ pub mod spells;
 pub mod weapons;
 
 pub fn parse_filename(path: &str) -> (i32, i32) {
-    let file_regex = Regex::new(r"^filech(\d)_(\d)$").unwrap();
+    let file_regex = Regex::new(r"^filech(\d)_(\d)(?:_b)?$").unwrap();
     let filename = path.split('/').next_back().unwrap_or(path);
 
     match file_regex.captures(filename) {
