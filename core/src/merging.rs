@@ -502,8 +502,8 @@ pub fn merge_savefiles(
         }
     }
 
-    data.push(MergeResult::Resolved(ours.inventory[12].serialize()));
-    data.push(MergeResult::Resolved(key_items[12].serialize()));
+    data.push(MergeResult::Resolved("999".into()));
+    data.push(MergeResult::Resolved("0".into()));
 
     if chapter == 1 {
         data.push(MergeResult::Resolved(weapons[12].serialize()));

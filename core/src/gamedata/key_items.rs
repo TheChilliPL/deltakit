@@ -26,8 +26,23 @@ pub fn try_get_key_item_name(key_item_id: i32) -> Option<&'static str> {
         17 => Some("BackstagePass"),
         18 => Some("TripTicket"),
         19 => Some("LancerCon"), // Amount in global flag 1099
+        // Added in Chapter 5
+        20 => Some("Scissors"),
+        21 => Some("YellowShred"),
+        22 => Some("BootOil"),
+        23 => Some("RedSplatter"),
+        24 => Some("BromideR"),
+        25 => Some("PetalFeather"),
+        26 => Some("PerpBook"),
+        27 => Some("BlueString"),
+        28 => Some("TrainPlan"),
+        29 => Some("YellowKey"),
+        // Added in Chapter 4
         30 => Some("SheetMusic"),
         31 => Some("ClaimbClaws"),
+        // Added in Chapter 5
+        32 => Some("MysteryKey"),
+        33 => Some("BromideF"),
         _ => None,
     }
 }

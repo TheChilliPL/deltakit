@@ -1,6 +1,9 @@
 use compact_str::{CompactString, format_compact};
 
 // Extracted from scr_get_room_list in gml_GlobalScript_scr_get_room_by_id using UndertaleModTool
+// TODO Add Chapter 5 rooms
+// The “internal” room IDs seem to be the engine IDs in order as output of ExportAssetOrder script in UndertaleModTool.
+// TODO Some automatization? lol
 pub fn try_get_room_id(room_index: i32) -> Option<&'static str> {
     match room_index {
         // region Chapter 1 rooms
@@ -881,6 +884,35 @@ pub fn try_get_room_name(chapter_id: i32, room_index: i32) -> Option<&'static st
             298 => Some("Castle Town - TV Building"),
             _ => None,
         },
+        5 => match room_index - 6 {
+            0 => Some("---"),
+            13 => Some("Kris's Room"),
+            24 => Some("Hometown"),
+            54 => Some("My Castle Town"),
+            112 => Some("Castle Town - TV Building"),
+            120 => Some("Dark World"),
+            122 => Some("Garden - Beginning"),
+            129 => Some("Garden - Flowery Helped"),
+            133 => Some("Garden - Ideal Diner"),
+            141 => Some("Garden - Shrine"),
+            144 => Some("Cliffs - Beginning"),
+            150 => Some("Garden - Way Home"),
+            161 => Some("Cliffs - Shop"),
+            167 => Some("Cliffs - Below Castle"),
+            177 => Some("Flower Castle - Cafe"),
+            179 => Some("Flower Castle - Jail"),
+            183 => Some("Flower Castle - Left Doors"),
+            187 => Some("Flower Castle - Left Stage"),
+            189 => Some("Flower Castle - Left End"),
+            202 => Some("Flower Castle - Right Diner"),
+            205 => Some("Flower Castle - Right View"),
+            207 => Some("Flower Castle - Right End"),
+            222 => Some("Top of Castle - Beginning"),
+            224 => Some("Top of Castle - Green's Shop"),
+            225 => Some("Top of Castle - Castle Top"),
+            230 => Some("Top of Castle - Boss?"),
+            _ => None,
+        }
         _ => None,
     }
 }
@@ -893,7 +925,8 @@ pub fn display_room(room_index: i32) -> CompactString {
 
     match (room_index, room_id, room_name) {
         (index, Some(id), Some(name)) => format_compact!("{name} ({index}. {id})"),
-        (index, Some(id), _) => format_compact!("{id} ({index})", id = id),
-        (index, _, _) => format_compact!("Unknown room {index}", index = index),
+        (index, None, Some(name)) => format_compact!("{name} ({index})"),
+        (index, Some(id), None) => format_compact!("{id} ({index})"),
+        (index, None, None) => format_compact!("Unknown room {index}"),
     }
 }

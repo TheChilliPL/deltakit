@@ -31,6 +31,17 @@ pub fn try_get_armor_name(armor_id: i32) -> Option<&'static str> {
         25 => Some("GingerGuard"),
         26 => Some("BlueRibbon"),
         27 => Some("TennaTie"),
+        // Added in Chapter 5
+        30 => Some("MonarchRBN"),
+        31 => Some("TrueTie"),
+        32 => Some("DogWidow"),
+        33 => Some("RedRibbon"),
+        34 => Some("NetskieHat"),
+        35 => Some("SethSpecs"),
+        36 => Some("YellowHat"),
+        37 => Some("O.Glove"),
+        38 => Some("GreenApron"),
+        // Added in Chapter 4?
         50 => Some("Waferguard"),
         51 => Some("MysticBand"),
         52 => Some("PowerBand"),

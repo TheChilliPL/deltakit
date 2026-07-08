@@ -24,8 +24,8 @@ pub struct SaveData<'a> {
     pub bolt_speed: i32,
     pub graze_amount: i32,
     pub graze_size: i32,
-    pub inventory: [i32; 13],
-    pub key_items: [i32; 13],
+    pub inventory: [i32; 12],
+    pub key_items: [i32; 12],
     pub weapons: Vec<i32>,
     pub armors: Vec<i32>,
     pub storage: Option<Vec<i32>>,
@@ -50,9 +50,9 @@ impl SaveData<'_> {
             panic!("Invalid chapter number");
         }
 
-        if chapter > 4 {
+        if chapter > 5 {
             warn!(
-                "Chapter {} is not supported. Will assume it's the same as chapters 2–4,\
+                "Chapter {} is not supported. Will assume it's the same as chapters 2–5,\
                     but might break.",
                 chapter
             );
@@ -116,6 +116,10 @@ impl SaveData<'_> {
             }
         }
 
+        if inventory.last().copied() != Some(999) {
+            panic!("Inventory didn't end as expected.");
+        }
+
         if !is_chapter_1 {
             for _ in 0..48 {
                 weapons.push(parser.parse_int()?);
@@ -172,8 +176,8 @@ impl SaveData<'_> {
             bolt_speed,
             graze_amount,
             graze_size,
-            inventory,
-            key_items,
+            inventory: inventory[..12].try_into().unwrap(),
+            key_items: key_items[..12].try_into().unwrap(),
             weapons,
             armors,
             storage,

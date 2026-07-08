@@ -22,6 +22,12 @@ pub fn try_get_lightworld_item_name(item_id: i32) -> Option<&'static str> {
         16 => Some("CactusNeedle"),
         17 => Some("BlackShard"),
         18 => Some("QuillPen"),
+        // Added in Chapter 5
+        19 => Some("Honey Toast"),
+        20 => Some("Bread"),
+        21 => Some("Seeds"),
+        22 => Some("Pencil2"),
+        23 => Some("Petal"),
         _ => None,
     }
 }

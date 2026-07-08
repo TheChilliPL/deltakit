@@ -43,10 +43,24 @@ pub fn try_get_item_name(item_id: i32) -> Option<&'static str> {
         37 => Some("TVSlop"),
         38 => Some("ExecBuffet"),
         39 => Some("DeluxeDinner"),
+        // Added in Chapter 5
+        40 => Some("PunchBowl"),
+        41 => Some("Flavigne"),
+        42 => Some("GreenTea"),
+        43 => Some("OrangeJuice"),
+        // Added in Chapter 4
         60 => Some("AncientSweet"),
         61 => Some("Rhapsotea"),
         62 => Some("Scarlixir"),
         63 => Some("BitterTear"),
+        // Added in Chapter 5
+        64 => Some("Schadenbrot"),
+        65 => Some("TreeCake"),
+        66 => Some("S.POTION"),
+        67 => Some("Raw Moon"),
+        68 => Some("Phanta"),
+        69 => Some("FlowerySoda"),
+        70 => Some("Shikacola"),
         _ => None,
     }
 }

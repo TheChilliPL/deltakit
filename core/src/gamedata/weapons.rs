@@ -30,6 +30,16 @@ pub fn try_get_weapon_name(weapon_id: i32) -> Option<&'static str> {
         24 => Some("ToxicAxe"),
         25 => Some("FlexScarf"),
         26 => Some("BlackShard"),
+        // Added in Chapter 5
+        30 => Some("WoodBlade2"),
+        31 => Some("Thatchet"),
+        32 => Some("BlueShoes"),
+        33 => Some("AquaKnife"),
+        34 => Some("FloweryScarf"),
+        35 => Some("BrokenScarf"),
+        36 => Some("GildedRose"),
+        37 => Some("MistleWP"),
+        // Added before Chapter 5
         50 => Some("JingleBlade"),
         51 => Some("ScarfMark"),
         52 => Some("JusticeAxe"),
