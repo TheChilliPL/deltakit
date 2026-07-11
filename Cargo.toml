@@ -4,6 +4,7 @@ members = [
     "deltacommit",
     "deltainfo",
     "deltamerge",
+    "extractor"
 ]
 resolver = "3"
 
@@ -19,5 +20,10 @@ pretty_env_logger = "0.5.0"
 compact_str = "0.9.0"
 regex = "1.11.1"
 indoc = "2.0.6"
-clap = { version = "4.5.40", features = ["derive"] }
+clap = { version = "4.5.40", features = ["derive", "env"] }
 thiserror = "2.0.12"
+serde = "1.0.228"
+serde_json = "1.0.150"
+dotenv = "0.15.0"
+tempfile = "3.27.0"
+eyre = "0.6.12"

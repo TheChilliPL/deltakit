@@ -1,0 +1,14 @@
+[package]
+name = "extractor"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+log.workspace = true
+clap.workspace = true
+dotenv.workspace = true
+pretty_env_logger.workspace = true
+tempfile.workspace = true
+eyre.workspace = true
+regex = "1.13.0"
