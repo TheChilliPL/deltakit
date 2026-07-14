@@ -1,3 +1,5 @@
+mod kvparser;
+
 use std::collections::HashMap;
 use std::io::Write;
 use clap::Parser;
@@ -10,6 +12,7 @@ use std::num::NonZero;
 use std::path::{Path, PathBuf, absolute};
 use std::process::{Command, Stdio};
 use tempfile::{TempDir, tempdir};
+use serde::Serialize;
 
 const CHAPTER_COUNT: u32 = 5;
 
@@ -162,7 +165,7 @@ fn get_asset_order_txt(
 type AssetName = String;
 type RoomId = NonZero<u32>;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct ChapterData {
     armors: Vec<Option<String>>,
     items: Vec<Option<String>>,
@@ -221,7 +224,7 @@ impl ChapterData {
             room_ids[index] = Some(id);
         }
 
-        debug!("Rooms: {:?}", room_ids.iter().zip(&room_assets).collect::<Vec<_>>());
+        // debug!("Rooms: {:?}", room_ids.iter().zip(&room_assets).collect::<Vec<_>>());
 
         let armors = Self::find_strings(
             &armors_code,
@@ -387,9 +390,15 @@ fn main() -> eyre::Result<()> {
         (Some(tempdir), path)
     };
 
-    let ch = ChapterData::load(&cli, 5, &tempdir_path)?;
+    for ch in 2..=CHAPTER_COUNT {
+        info!("Extracting chapter {}.", ch);
+        let data = ChapterData::load(&cli, ch, &tempdir_path)?;
 
-    info!("Chapter data: {ch:#?}");
+        let file_path = format!("chapter_{}.json", ch);
+        let file = File::create(&file_path)?;
+        serde_json::to_writer(&file, &data)?;
+        info!("Chapter {} data saved in {}.", ch, file_path);
+    }
 
     Ok(())
 }
