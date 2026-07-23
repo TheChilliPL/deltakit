@@ -1,5 +1,7 @@
+use bon::__::IsUnset;
 use bon::Builder;
-use regex::Regex;
+use regex::{regex, Regex};
+use crate::kvparser::k_v_parser_builder::{SetWithScopePatterns, State};
 
 macro_rules! assert_static_capture_groups {
     ($regex:expr, 0) => {
@@ -123,6 +125,11 @@ impl<'a, S: k_v_parser_builder::IsComplete> KVParserBuilder<'a, S> {
         assert_static_capture_groups!(instance.value, 1);
 
         instance
+    }
+
+    /// Shorthand for `self.build().parse(haystack)`.
+    pub fn parse(self, haystack: &'a str) -> Option<Vec<(&'a str, &'a str)>> {
+        self.build().parse(haystack)
     }
 }
 

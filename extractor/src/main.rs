@@ -1,18 +1,19 @@
 mod kvparser;
 
-use std::collections::HashMap;
-use std::io::Write;
+use crate::kvparser::{KVParser, KVParserBuilder};
 use clap::Parser;
 use dotenv::dotenv;
 use eyre::eyre;
 use log::{LevelFilter, debug, info, trace, warn};
 use regex::{Regex, regex};
+use serde::Serialize;
+use std::collections::HashMap;
 use std::fs::{File, create_dir_all, read_to_string};
+use std::io::Write;
 use std::num::NonZero;
 use std::path::{Path, PathBuf, absolute};
 use std::process::{Command, Stdio};
 use tempfile::{TempDir, tempdir};
-use serde::Serialize;
 
 const CHAPTER_COUNT: u32 = 5;
 
@@ -105,12 +106,14 @@ fn get_asset_order_txt(
     chapter: u32,
     tempdir: &Path,
 ) -> eyre::Result<HashMap<String, Vec<String>>> {
-    let script_path = options.utmt_cli_path.join("../Scripts/Technical Scripts/ExportAssetOrder.csx");
+    let script_path = options
+        .utmt_cli_path
+        .join("../Scripts/Technical Scripts/ExportAssetOrder.csx");
     let out_txt_path = tempdir.join("asset_order.txt");
 
     let mut cmd = Command::new(&options.utmt_cli_path);
     cmd.arg("load")
-        .arg(get_data_win_path(options,chapter))
+        .arg(get_data_win_path(options, chapter))
         .arg("-s")
         .arg(script_path)
         .stdout(Stdio::null())
@@ -141,20 +144,24 @@ fn get_asset_order_txt(
 
     for line in output.lines() {
         if line.starts_with("@@") && line.ends_with("@@") {
-            if let Some(prev_asset_type) = current_asset_type.take() && !current_asset_list.is_empty() {
+            if let Some(prev_asset_type) = current_asset_type.take()
+                && !current_asset_list.is_empty()
+            {
                 let prev_asset_list = current_asset_list;
                 current_asset_list = Vec::new();
                 hashmap.insert(prev_asset_type, prev_asset_list);
             }
 
-            let asset_type = &line[2..line.len()-2];
+            let asset_type = &line[2..line.len() - 2];
             current_asset_type = Some(asset_type.to_string());
         } else {
             current_asset_list.push(line.to_string());
         }
     }
 
-    if let Some(last_asset_type) = current_asset_type.take() && !current_asset_list.is_empty() {
+    if let Some(last_asset_type) = current_asset_type.take()
+        && !current_asset_list.is_empty()
+    {
         let last_asset_list = current_asset_list;
         hashmap.insert(last_asset_type, last_asset_list);
     }
@@ -210,14 +217,17 @@ impl ChapterData {
 
         let room_assets = {
             let mut asset_order = get_asset_order_txt(options, chapter, tempdir)?;
-            asset_order.remove("rooms").ok_or_else(|| eyre!("couldn't get room asset order"))?
+            asset_order
+                .remove("rooms")
+                .ok_or_else(|| eyre!("couldn't get room asset order"))?
         };
 
         let mut room_ids = vec![None; room_assets.len()];
 
         let rooms_assets_ids = Self::find_room_assets_and_ids(&room_ids_code);
         for (asset_name, id) in rooms_assets_ids {
-            let index = room_assets.iter()
+            let index = room_assets
+                .iter()
                 .position(|it| it == &asset_name)
                 .ok_or_else(|| eyre!("couldn't find index of room {asset_name}"))?;
 
@@ -226,76 +236,76 @@ impl ChapterData {
 
         // debug!("Rooms: {:?}", room_ids.iter().zip(&room_assets).collect::<Vec<_>>());
 
-        let armors = Self::find_strings(
-            &armors_code,
-            regex!(r"function scr_armorinfo\(arg0\)"),
-            regex!("$"),
-            regex!(r"case (\d+):"),
-            regex!(r#"armornametemp ?= ?(?:stringsetloc\("(.*)", ".*"\)|"(.*)");"#),
-        )?;
+        let armors = KVParser::builder()
+            .with_scope_patterns((regex!(r"function scr_armorinfo\(arg0\)"), regex!("$")))
+            .with_iter_patterns((regex!(r"case (?:\d+):"), regex!("break;")))
+            .with_key_pattern(regex!(r"^case (\d+):"))
+            .with_value_pattern(regex!(r"armornametemp ?= ?(.*);\n"))
+            .parse(&armors_code)
+            .unwrap();
         let armors = Self::deindex(armors);
 
-        let items = Self::find_strings(
-            &items_code,
-            regex!(r"function scr_iteminfo\(arg0\)"),
-            regex!("$"),
-            regex!(r"case (\d+):"),
-            regex!(r#"itemnameb ?= ?(?:stringsetloc\("(.*)", ".*"\)|"(.*)");"#),
-        )?;
+        let items = KVParser::builder()
+            .with_scope_patterns((regex!(r"function scr_iteminfo\(arg0\)"), regex!("$")))
+            .with_iter_patterns((regex!(r"case (?:\d+):"), regex!("break;")))
+            .with_key_pattern(regex!(r"^case (\d+):"))
+            .with_value_pattern(regex!(r"itemnameb ?= ?(.*);\n"))
+            .parse(&items_code)
+            .unwrap();
         let items = Self::deindex(items);
 
-        let key_items = Self::find_strings(
-            &key_items_code,
-            regex!(r"function scr_keyiteminfo\(arg0\)"),
-            regex!("$"),
-            regex!(r"case (\d+):"),
-            regex!(r#"tempkeyitemname ?= ?(?:stringsetloc\("(.*)", ".*"\)|"(.*)");"#),
-        )?;
+        let key_items = KVParser::builder()
+            .with_scope_patterns((regex!(r"function scr_keyiteminfo\(arg0\)"), regex!("$")))
+            .with_iter_patterns((regex!(r"case (?:\d+):"), regex!("break;")))
+            .with_key_pattern(regex!(r"^case (\d+):"))
+            .with_value_pattern(regex!(r"tempkeyitemname ?= ?(.*);\n"))
+            .parse(&key_items_code)
+            .unwrap();
         let key_items = Self::deindex(key_items);
 
-        let light_world_items = Self::find_strings(
-            &light_world_items_code,
-            regex!(r"function scr_litemname\(\)"),
-            regex!("$"),
-            regex!(r"if ?\(itemid ?== ?(\d+)\)"),
-            regex!(r#"global\.litemname\[i] ?= ?(?:stringsetloc\("(.*)", ".*"\)|"(.*)");"#),
-        )?;
+        let light_world_items = KVParser::builder()
+            .with_scope_patterns((regex!(r"function scr_litemname\(\)"), regex!("$")))
+            .with_iter_patterns((regex!(r"if ?\(itemid ?== ?(?:\d+)\)"), regex!(r"\n {8}}")))
+            .with_key_pattern(regex!(r"^if ?\(itemid ?== ?(\d+)\)"))
+            .with_value_pattern(regex!(r"global\.litemname\[i] ?= ?(.*);\n"))
+            .parse(&light_world_items_code)
+            .unwrap();
         let light_world_items = Self::deindex(light_world_items);
 
-        let phone_numbers = Self::find_strings(
-            &phone_numbers_code,
-            regex!(r"function scr_phonename\(\)"),
-            regex!("$"),
-            regex!(r"case (\d+):"),
-            regex!(r#"global\.phonename\[i] ?= ?(?:stringsetloc\("(.*)", ".*"\)|"(.*)");"#),
-        )?;
+        let phone_numbers = KVParser::builder()
+            .with_scope_patterns((regex!(r"function scr_phonename\(\)"), regex!("$")))
+            .with_iter_patterns((regex!(r"case (?:\d+):"), regex!("break;")))
+            .with_key_pattern(regex!(r"^case (\d+):"))
+            .with_value_pattern(regex!(r"global\.phonename\[i] ?= ?(.*);\n"))
+            .parse(&phone_numbers_code)
+            .unwrap();
         let phone_numbers = Self::deindex(phone_numbers);
 
-        let room_names = Self::find_strings(
-            &room_names_code,
-            regex!(r"function scr_roomname\(arg0\)"),
-            regex!("$"),
-            regex!(r"if ?\(arg0 ?== ?(\d+)\)"),
-            regex!(r#"roomname ?= ?(?:stringsetloc\("(.*)", ".*"\)|"(.*)");"#),
-        )?;
+        let room_names = KVParser::builder()
+            .with_scope_patterns((regex!(r"function scr_roomname\(arg0\)"), regex!("$")))
+            .with_iter_patterns((regex!(r"if ?\(arg0 ?== ?(?:\d+)\)"), regex!(r"\n    }")))
+            .with_key_pattern(regex!(r"^if ?\(arg0 ?== ?(\d+)\)"))
+            .with_value_pattern(regex!(r#"roomname ?= ?(.*);"#))
+            .parse(&room_names_code)
+            .unwrap();
         let room_names = Self::deindex(room_names);
 
-        let spells = Self::find_strings(
-            &spells_code,
-            regex!(r"function scr_spellinfo\(arg0\)"),
-            regex!("$"),
-            regex!(r"case (\d+):"),
-            regex!(r#"spellname ?= ?(?:stringsetloc\("(.*)", ".*"\)|"(.*)");"#),
-        )?;
+        let spells = KVParser::builder()
+            .with_scope_patterns((regex!(r"function scr_spellinfo\(arg0\)"), regex!("$")))
+            .with_iter_patterns((regex!(r"case (?:\d+):"), regex!("break;")))
+            .with_key_pattern(regex!(r"^case (\d+):"))
+            .with_value_pattern(regex!(r#"spellname ?= ?(.*);"#))
+            .parse(&spells_code)
+            .unwrap();
         let spells = Self::deindex(spells);
 
-        let weapons = Self::find_strings(
-            &weapons_code,
-            regex!(r"function scr_weaponinfo\(arg0\)"),
-            regex!("$"),
-            regex!(r"case (\d+):"),
-            regex!(r#"weaponnametemp ?= ?(?:stringsetloc\("(.*)", ".*"\)|"(.*)");"#),
-        )?;
+        let weapons = KVParser::builder()
+            .with_scope_patterns((regex!(r"function scr_weaponinfo\(arg0\)"), regex!("$")))
+            .with_iter_patterns((regex!(r"case (?:\d+):"), regex!("break;")))
+            .with_key_pattern(regex!(r"^case (\d+):"))
+            .with_value_pattern(regex!(r#"weaponnametemp ?= ?(.*);"#))
+            .parse(&weapons_code)
+            .unwrap();
         let weapons = Self::deindex(weapons);
 
         Ok(ChapterData {
@@ -322,47 +332,24 @@ impl ChapterData {
         let iter_regex = regex!(r"new scr_room\((\w+), (\d+)\)");
         let matches = iter_regex.captures_iter(&room_ids_code[start_index..]);
 
-        matches.map(|mat| {
-            let asset_name = mat[1].to_string();
-            let room_id = mat[2].to_string().parse().unwrap();
-            (asset_name, room_id)
-        }).collect()
+        matches
+            .map(|mat| {
+                let asset_name = mat[1].to_string();
+                let room_id = mat[2].to_string().parse().unwrap();
+                (asset_name, room_id)
+            })
+            .collect()
     }
 
-    fn find_strings(code: &str, start_pat: &Regex, end_pat: &Regex, iter_pat: &Regex, str_pat: &Regex) -> eyre::Result<Vec<(String, String)>> {
-        debug_assert!(start_pat.static_captures_len() == Some(1), "start_pat shouldn't have capture groups");
-        debug_assert!(end_pat.static_captures_len() == Some(1), "end_pat shouldn't have capture groups");
-        debug_assert!(iter_pat.static_captures_len() == Some(2), "iter_pat pattern does not have exactly one capture group");
-        debug_assert!(str_pat.static_captures_len() == Some(2), "str_pat pattern does not have exactly one capture group");
-
-        let start_match = start_pat.find(code).ok_or_else(|| eyre!("couldn't find starting pattern"))?;
-        let end_match = end_pat.find_at(code, start_match.end()).ok_or_else(|| eyre!("couldn't find ending pattern"))?;
-
-        let code = &code[start_match.end()..end_match.start()];
-
-        let iter_matches = iter_pat.captures_iter(code);
-
-        let mut vec = Vec::with_capacity(iter_matches.size_hint().0);
-
-        for mat in iter_matches {
-            let key = &mat[1];
-            let str_match = str_pat.captures_at(code, mat.get_match().end()).ok_or_else(|| eyre!("couldn't find value for key {}", key))?;
-
-            let value = str_match.iter().skip(1).flatten().next().unwrap().as_str();
-
-            vec.push((key.to_string(), value.to_string()));
-        }
-
-        Ok(vec)
-    }
-
-    fn deindex(input: Vec<(String, String)>) -> Vec<Option<String>> {
-        let input = input.into_iter().map(|(k, v)| (k.parse::<usize>().unwrap(), v));
-        let max_index = input.clone().map(|(k,v)| k).max().unwrap();
+    fn deindex(input: Vec<(&str, &str)>) -> Vec<Option<String>> {
+        let input = input
+            .into_iter()
+            .map(|(k, v)| (k.parse::<usize>().unwrap(), v));
+        let max_index = input.clone().map(|(k, v)| k).max().unwrap();
         let mut output = vec![None; max_index + 1];
 
         for (k, v) in input {
-            output[k] = Some(v);
+            output[k] = Some(v.to_string());
         }
 
         output
@@ -390,7 +377,7 @@ fn main() -> eyre::Result<()> {
         (Some(tempdir), path)
     };
 
-    for ch in 2..=CHAPTER_COUNT {
+    for ch in 1..=CHAPTER_COUNT {
         info!("Extracting chapter {}.", ch);
         let data = ChapterData::load(&cli, ch, &tempdir_path)?;
 
